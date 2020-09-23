@@ -1,0 +1,20 @@
+---
+- hosts: masters
+  gather_facts: yes
+  remote_user: "{{ user }}"
+  vars:
+    yml_path: "/home/{{ user }}/repos/elk-project/stack-yml"
+  tasks:
+    - name: Deploy elk stacks
+      shell: "docker stack deploy {{ yml_path }}/{{ item}}.elk {{ item}} --with-registry-auth {{ item }}"
+      with_items:       
+        - elk-elasticsearch
+        - elk-logstash
+        - elk-filebeat
+        - elk-kibana
+      environment:
+        - USER: "{{ user }}"
+
+
+
+

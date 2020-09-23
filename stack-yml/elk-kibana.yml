@@ -1,0 +1,37 @@
+version: '3.2'
+services:
+  kibana:
+    labels:
+      - module_name=kibana
+      - module_type=elk
+    image: docker.elastic.co/kibana/kibana:7.4.0
+    environment:
+      SERVER_NAME: kibana
+      ELASTICSEARCH_HOSTS: http://esnode1:9200
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+    deploy:
+      placement:
+        constraints:
+          - node.labels.elk == kibana
+      restart_policy:
+        condition: on-failure
+    ports:
+      - 5601:5601
+    volumes:
+      - kibana:/usr/share/kibana/data
+    networks:
+      common-network:
+        aliases:
+          - kibana
+      
+volumes:
+  kibana:
+
+networks:
+  common-network:
+    external: true
+  

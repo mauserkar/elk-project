@@ -1,0 +1,17 @@
+---
+- hosts: workers
+  remote_user: "{{ user }}"
+  gather_facts: yes
+  vars:
+      token: "{{ hostvars[groups['masters'][0]]['worker_token']['stdout'] }}"
+      master: "{{ hostvars[groups['masters'][0]]['ansible_hostname'] }}"
+  tasks:
+    - name: Join to cluster as a worker
+      command: docker swarm join --token {{ token }} {{ master }}:2377
+      register: worker
+
+    - name: Show Results
+      debug: var=worker.stdout
+
+    - name: Show Errors
+      debug: var=worker.stderr

@@ -1,0 +1,129 @@
+---
+- hosts: all
+  gather_facts: true
+  remote_user: "{{ user }}"
+  vars:
+    user: "{{ user }}"
+  tasks:
+    - name: user - folders
+      file:
+        path: "/home/{{ user }}/{{ item }}"
+        state: directory
+      become: false
+      with_items:
+        - ".ssh"
+        - "repos"
+        - "local"
+
+    # - name: user - ssh key
+    #   copy:
+    #     src: "./ansible-files/ansible.key"
+    #     dest: "/home/{{ user }}/.ssh/{{ user }}.key"
+    #     mode: 0600
+    #   become: false
+
+    # - name: user - ssh config
+    #   blockinfile:
+    #     path: "/home/{{ user }}/.ssh/config"
+    #     block: |
+    #       Host *
+    #         IdentityFile    ~/.ssh/{{ user }}.key
+    #         StrictHostKeyChecking no
+
+    - name: Clone repo
+      git: repo=https://bitbucket.org/crauserkar/elk-project.git
+        dest="/home/{{ user }}/repos/elk-project"
+        accept_hostkey=yes
+        force=yes
+        recursive=no
+            
+    - name: apt-get update
+      apt:
+        update_cache: yes
+
+    - name: apt-get upgrade
+      apt:
+        upgrade: dist
+
+    - name: common packages
+      apt:
+        pkg:
+          - apache2-utils
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - git
+          - gnupg
+          - gnupg-agent
+          - gnupg2
+          - jq
+          - lsb-release
+          - python3
+          - python3-pip
+          - rpl
+          - software-properties-common
+          - telnet
+          - tree
+          - unzip
+          - wget
+          - traceroute
+        state: present
+
+    - name: gpg keys
+      apt_key:
+        url: "{{ item }}"
+        state: present
+      with_items:
+        - https://download.docker.com/linux/{{ansible_distribution|lower}}/gpg
+
+    - name: apt repo
+      apt_repository:
+        repo: "{{ item }}"
+      with_items:
+        - deb [arch=amd64] https://download.docker.com/linux/{{ansible_distribution|lower}} {{ansible_distribution_release}} stable
+
+    - name: apt-get update
+      apt:
+        update_cache: yes
+
+    - name: repo packages
+      apt:
+        pkg:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+
+    - name: pip - packages
+      pip:
+        name: 
+          - docker
+          - virtualenv
+        state: present
+
+    - name: symbolic link - pip 
+      file:
+        src: /usr/bin/pip3
+        dest: /usr/bin/pip
+        state: link
+
+    - name: symbolic link - python 
+      file:
+        src: /usr/bin/python3
+        dest: /usr/bin/python
+        state: link
+
+    - name: user - group docker
+      user:
+        name: "{{ user }}"
+        group: docker
+        append: yes
+
+    - name: security limits
+      blockinfile:
+        path: /etc/sysctl.conf
+        block: |
+          *             soft    nofile  99901
+          *             hard    nofile  99901
+          *             soft    core    unlimited
+          *             hard    core    unlimited

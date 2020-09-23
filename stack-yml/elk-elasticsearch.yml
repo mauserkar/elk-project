@@ -1,0 +1,83 @@
+version: '3.2'
+services:
+  esnode1:
+    labels:
+      - module_name=esnode1
+      - module_type=elk
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.4.0
+    environment:
+      - ES_JAVA_OPTS=-Xms2g -Xmx2g
+      - bootstrap.memory_lock=false
+      - node.name=esnode1
+      - cluster.name=elk-elasticsearch
+      - discovery.seed_hosts=esnode2
+      - cluster.initial_master_nodes=esnode1,esnode2
+    deploy:
+      placement:
+        constraints:
+          - node.labels.elk == esnode
+      resources:
+         ulimits:
+           memlock:
+             soft: -1
+             hard: -1
+      restart_policy:
+        condition: on-failure
+    volumes:
+      - esdata1:/usr/share/elasticsearch/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+    ports:
+      - 9200:9200
+    networks:
+      common-network:
+        aliases:
+          - esnode1
+
+  esnode2:
+    labels:
+      - module_name=esnode2
+      - module_type=elk
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.4.0
+    environment:
+      - ES_JAVA_OPTS=-Xms2g -Xmx2g
+      - bootstrap.memory_lock=false
+      - node.name=esnode2
+      - cluster.name=elk-elasticsearch
+      - discovery.seed_hosts=esnode2
+      - cluster.initial_master_nodes=esnode1,esnode2
+    deploy:
+      placement:
+        constraints:
+          - node.labels.elk == esnode
+      resources:
+         ulimits:
+           memlock:
+             soft: -1
+             hard: -1
+      restart_policy:
+        condition: on-failure
+    volumes:
+      - esdata2:/usr/share/elasticsearch/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+    ports:
+      - 9220:9200
+    networks:
+      common-network:
+        aliases:
+          - esnode2
+
+volumes:
+  esdata1:
+  esdata2:
+
+networks:
+  common-network:
+    external: true
